@@ -104,7 +104,7 @@ def getProjectsUserIsMentoring(request, user_id):
 @require_http_methods(['GET'])
 def getProjectsUserIsMentoring(request, user_id):
     user_ob = Users.objects.get(id = user_id)
-    project_ids_qs = ProjectUser.objects.filter(user=user_ob, is_mentor=True).values_list('project_id', flat=True)
+    project_ids_qs = ProjectUser.objects.filter(user=user_ob, is_mentor=True).values_list('project_id', flat=True).distinct()
     project_ids = []
     for proj_id in project_ids_qs:
         project_ids.append(proj_id)
@@ -127,12 +127,12 @@ def getProjectAssociates(request, project_id):
     user_ids = []
     mentor_ids = []
     for proj_ob in project_ob_qs:
-        print(proj_ob.is_mentor)
         if proj_ob.is_mentor:
             mentor_ids.append(proj_ob.user_id)
         else:
             user_ids.append(proj_ob.user_id)
-
+    mentor_ids = list(set(mentor_ids))
+    user_ids = list(set(user_ids))
     response = {
         'result': {
             'user_ids' : user_ids,
