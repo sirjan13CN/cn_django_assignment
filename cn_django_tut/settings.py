@@ -25,7 +25,7 @@ SECRET_KEY = 'aesayji4nr)g(-$(g9aw5q5myao#yjcdruj&ebc8zw)$zd3g5-'
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['http://k70830f4d7e04432ba05f469be96d7b49-8000.cy.devfactory.com']
 
 
 # Application definition
@@ -40,7 +40,6 @@ INSTALLED_APPS = [
     'rest_framework_swagger',
     'rest_framework',
     'corsheaders',
-    'swagger_ui',
     'myproject'
 ]
 

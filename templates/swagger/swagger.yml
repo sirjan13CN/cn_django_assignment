@@ -4,7 +4,7 @@ info:
   description: API
   version: 1.0.0
   title: Projects - Mentors and Mentees
-host: 127.0.0.1:8000
+host: http://k70830f4d7e04432ba05f469be96d7b49-8000.cy.devfactory.com
 basePath: /
 schemes:
 - http
