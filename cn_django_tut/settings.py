@@ -40,6 +40,7 @@ INSTALLED_APPS = [
     'rest_framework_swagger',
     'rest_framework',
     'corsheaders',
+    'swagger_ui',
     'myproject'
 ]
 
@@ -66,10 +67,12 @@ CORS_ORIGIN_REGEX_WHITELIST = [
 
 ROOT_URLCONF = 'cn_django_tut.urls'
 
+SWAGGER_YAML_FILE = 'swagger.yml'
+
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [],
+        'DIRS': [os.path.join(BASE_DIR, 'templates')],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -133,3 +136,5 @@ USE_TZ = True
 # https://d...content-available-to-author-only...t.com/en/2.1/howto/static-files/
 
 STATIC_URL = '/static/'
+
+STATICFILES_DIRS = [os.path.join(BASE_DIR, 'static')]

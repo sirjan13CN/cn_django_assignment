@@ -1,0 +1,151 @@
+---
+swagger: "2.0"
+info:
+  description: API
+  version: 1.0.0
+  title: Projects - Mentors and Mentees
+host: 127.0.0.1:8000
+basePath: /
+schemes:
+- http
+paths:
+  /users/create/:
+    post:
+      description: Create a new user
+      operationId: userCreate
+      parameters:
+      - in: body
+        name: name
+        description: The name of the person
+        required: false
+        schema:
+          $ref: '#/definitions/Users'
+      responses:
+        201:
+          description: User added successfully
+  /projects/create/:
+    post:
+      description: Create a project
+      operationId: createProject
+      parameters:
+      - in: body
+        name: name
+        description: Name of project
+        required: false
+        schema:
+          $ref: '#/definitions/Project'
+      responses:
+        201:
+          description: Project created successfully
+  /projects/assignmentor/:
+    post:
+      description: Assign a project mentor to a project.
+      operationId: assignMentor
+      parameters:
+      - in: body
+        name: project_mentor
+        description: ID of project and mentor
+        required: false
+        schema:
+          $ref: '#/definitions/Project_Mentor'
+      responses:
+        201:
+          description: Mentor assigned successfully
+  /users/assignproject:
+    post:
+      description: Assign project to a user
+      operationId: assignProject
+      parameters:
+      - in: body
+        name: data
+        description: Project Id and user id list
+        required: false
+        schema:
+          $ref: '#/definitions/Project_userlist'
+      responses:
+        201:
+          description: Project assigned successfully
+  /projects/getmentees/{user_id}/:
+    get:
+      description: Get the list of IDs of the users being mentored by the queried user.
+      operationId: getMentees
+      parameters:
+      - name: user_id
+        in: path
+        description: ID of the user
+        required: true
+        type: integer
+      responses:
+        200:
+          description: Mentees fetched successfully
+  /projects/mentorprojlist/{user_id}/:
+    get:
+      description: Get the list of IDs of the projects being mentored by the queried user.
+      operationId: getMentoringProjects
+      parameters:
+      - name: user_id
+        in: path
+        description: ID of the user
+        required: true
+        type: integer
+      responses:
+        200:
+          description: Project Id list fetched successfully
+  /projects/associates/{project_id}/:
+    get:
+      description: Get the list of IDs of the mentors and users of the project
+      operationId: getUsersAndMentors
+      parameters:
+      - name: project_id
+        in: path
+        description: ID of the project
+        required: true
+        type: integer
+      responses:
+        200:
+          description: Users and mentors fetched successfully
+definitions:
+  Users:
+    type: object
+    properties:
+      name:
+        type: string
+        description: Name of user
+  Project_User:
+    properties:
+      user:
+        type: integer
+        description: Mentee/Mentor ID
+      project:
+        type: integer
+        description: Project ID
+      is_mentor:
+        type: boolean
+        description: Denotes whether the user is a mentor or a mentee
+    description: object
+  Project:
+    type: object
+    properties:
+      name:
+        type: string
+        description: Name of Project
+  Project_userlist:
+    type: object
+    properties:
+      proj_id:
+        type: integer
+        description: id of Project
+      user_list:
+        type: array
+        description: List of User Ids
+        items:
+          type: integer
+  Project_Mentor:
+    type: object
+    properties:
+      proj_id:
+        type: integer
+        description: id of Project
+      user_id:
+        type: integer
+        description: User Id
