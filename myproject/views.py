@@ -33,6 +33,7 @@ class UserViews(APIView):
         }
         return HttpResponse(json.dumps(response), content_type="application/json")
 
+
 class ProjectViews(APIView):
 
     def post(self, request):
