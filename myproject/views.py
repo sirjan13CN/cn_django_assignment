@@ -5,6 +5,7 @@ from django.views.decorators.http import require_http_methods
 from rest_framework.views import APIView
 import json
 from myproject.models import *
+from .serializers import *
 
 
 # Create your views here.
@@ -23,6 +24,14 @@ class UserViews(APIView):
 
         return HttpResponse(json.dumps(response), content_type="application/json")
 
+    def get(self, request):
+        response = {
+            'result': UserSerializer(instance = Users.objects.all(), many = True).data,
+            'status': True,
+            'status_code': 200,
+            'message': 'User List fetched successfully'
+        }
+        return HttpResponse(json.dumps(response), content_type="application/json")
 
 class ProjectViews(APIView):
 
