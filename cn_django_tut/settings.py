@@ -25,7 +25,7 @@ SECRET_KEY = 'aesayji4nr)g(-$(g9aw5q5myao#yjcdruj&ebc8zw)$zd3g5-'
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['sirjan.cndjango.cy.devfactory.com', '127.0.0.1']
+ALLOWED_HOSTS = ['sirjan.cndjango.cy.devfactory.com']
 
 
 # Application definition
