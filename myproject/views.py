@@ -1,3 +1,4 @@
+from django.db.utils import IntegrityError
 from django.shortcuts import render
 from django.http import HttpResponse
 from django.views.decorators.csrf import csrf_exempt
@@ -8,59 +9,128 @@ from myproject.models import *
 from .serializers import *
 
 
+def invalid_request(func):
+
+    def wrapper(*args, **kwargs):
+        try:
+            print(func)
+            return func(*args, **kwargs)
+        except IntegrityError:
+            print('aa')
+            response = {
+                'result': 'Record already exists for the given user and project',
+                'status_code': 500,
+                'message': 'Internal Server Error'
+            }
+            return HttpResponse(json.dumps(response))
+
+        except Exception as error:
+            response = {
+                'result': type(error),
+                'status_code': 500,
+                'message': 'Internal Server Error'
+            }
+            return HttpResponse(json.dumps(response))
+
+    return wrapper
+
+
 # Create your views here.
-class UserViews(APIView):
+class user_views(APIView):
 
     def post(self, request):
-        user_name = request.data['name']
+        try:
+            if 'name' in request.data:
+                user_name = request.data['name']
+            else:
+                response = {
+                    'result': "Bad Request",
+                    'status_code': 400,
+                    'message': " 'name' field not found"
+                }
+                return HttpResponse(json.dumps(response), content_type="application/json")
 
-        Users.objects.create(name=user_name)
-        response = {
-            'result': 'User added successfully',
-            'status': True,
-            'status_code': 201,
-            'message': 'User added successfully.'
-        }
+            Users.objects.create(name=user_name)
+            response = {
+                'result': 'User added successfully',
+                'status': True,
+                'status_code': 201,
+                'message': 'User added successfully.'
+            }
 
-        return HttpResponse(json.dumps(response), content_type="application/json")
+            return HttpResponse(json.dumps(response), content_type="application/json")
+        except Exception as error:
+            return HttpResponse(error)
 
     def get(self, request):
-        response = {
-            'result': UserSerializer(instance = Users.objects.all(), many = True).data,
-            'status': True,
-            'status_code': 200,
-            'message': 'User List fetched successfully'
-        }
-        return HttpResponse(json.dumps(response), content_type="application/json")
+        try:
+            response = {
+                'result': user_serializer(instance=Users.objects.all(), many=True).data,
+                'status': True,
+                'status_code': 200,
+                'message': 'User List fetched successfully'
+            }
+            return HttpResponse(json.dumps(response), content_type="application/json")
+        except Exception as error:
+            HttpResponse(error)
 
 
 class ProjectViews(APIView):
 
     def post(self, request):
-        project_name = request.data['name']
+        try:
 
-        Project.objects.create(name=project_name)
+            if 'name' in request.data:
+               project_name = request.data['name']
+            else:
+                response = {
+                    'result': "Bad Request",
+                    'status_code': 400,
+                    'message': " 'name' field not found"
+                }
+                return HttpResponse(json.dumps(response), content_type="application/json")
+
+            Project.objects.create(name=project_name)
+            response = {
+                'result': 'Project created successfully',
+                'status': True,
+                'status_code': 201,
+                'message': 'Project created successfully.'
+            }
+
+            return HttpResponse(json.dumps(response), content_type="application/json")
+        except Exception as error:
+            return HttpResponse(error)
+
+    def get(self, request):
         response = {
-            'result': 'Project created successfully',
+            'result': project_serializer(instance=Project.objects.all(), many=True).data,
             'status': True,
-            'status_code': 201,
-            'message': 'Project created successfully.'
+            'status_code': 200,
+            'message': 'Projects List fetched successfully'
         }
-
         return HttpResponse(json.dumps(response), content_type="application/json")
 
 
 @csrf_exempt
 @require_http_methods(['POST'])
-def assignProjectToUser(request):
+@invalid_request
+def assign_project_to_user(request):
     data = json.loads(request.body.decode('utf-8'))
-    user_id_list = data.get('user_list')
-    project_id = data.get('proj_id')
-    project_ob = Project.objects.get(id = project_id)
+    if 'user_list' and 'project_id' in data:
+        user_id_list = data.get('user_list')
+        project_id = data.get('project_id')
+    else:
+        response = {
+            'result': "Bad Request",
+            'status_code': 400,
+            'message': " 'user_list' and 'project_id' fields are required"
+        }
+        return HttpResponse(json.dumps(response), content_type="application/json")
 
-    for user_id in user_id_list:
-        user_ob = Users.objects.get(id = user_id)
-        ProjectUser.objects.create(user=user_ob, project=project_ob)
+    user_object_list = Users.objects.filter(pk__in=user_id_list)
+    project_user_list = [ProjectUser(user=user_ob, project_id=project_id) for user_ob in user_object_list]
+    ProjectUser.objects.bulk_create(project_user_list)
 
     response = {
         'result': 'Project assigned successfully',
@@ -74,18 +144,14 @@ def assignProjectToUser(request):
 
 @csrf_exempt
 @require_http_methods(['POST'])
-def assignMentorToProject(request):
-    data = json.loads(request.body.decode('utf-8'))
-    user_id = data.get('user_id')
-    project_id = data.get('proj_id')
-    project_ob = Project.objects.get(id = project_id)
-    user_ob = Users.objects.get(id = user_id)
-    ProjectUser.objects.create(user=user_ob, project=project_ob, is_mentor=True)
+@invalid_request
+def assign_mentor_to_project(request, project_id, mentor_id):
+    ProjectUser.objects.create(user_id=mentor_id, project_id=project_id, is_mentor=True)
 
     response = {
         'result': 'Mentor assigned to Project successfully',
         'status': True,
-        'status_code' : 201,
+        'status_code': 201,
         'message': 'Mentor assigned to Project successfully.'
     }
 
@@ -94,17 +160,15 @@ def assignMentorToProject(request):
 
 @csrf_exempt
 @require_http_methods(['GET'])
-def getProjectsUserIsMentoring(request, user_id):
-    user_ob = Users.objects.get(id = user_id)
-    project_ids_qs = ProjectUser.objects.filter(user=user_ob, is_mentor=True).values_list('project_id', flat=True)
-    project_ids = []
-    for proj_id in project_ids_qs:
-        project_ids.append(proj_id)
+@invalid_request
+def get_projects_user_is_mentoring(request, mentor_id):
+    project_ids = ProjectUser.objects.filter(user_id=mentor_id, is_mentor=True).values_list('project__id', flat=True)
+    projects = Project.objects.filter(pk__in=project_ids)
     response = {
-        'result': project_ids,
+        'result': project_serializer(instance=projects, many=True).data,
         'status': True,
-        'status_code' : 201,
-        'message': 'Mentor assigned to Project successfully.'
+        'status_code': 201,
+        'message': 'Project List Fetched successfully.'
     }
 
     return HttpResponse(json.dumps(response), content_type="application/json")
@@ -112,45 +176,27 @@ def getProjectsUserIsMentoring(request, user_id):
 
 @csrf_exempt
 @require_http_methods(['GET'])
-def getProjectsUserIsMentoring(request, user_id):
-    user_ob = Users.objects.get(id = user_id)
-    project_ids_qs = ProjectUser.objects.filter(user=user_ob, is_mentor=True).values_list('project_id', flat=True).distinct()
-    project_ids = []
-    for proj_id in project_ids_qs:
-        project_ids.append(proj_id)
-    response = {
-        'result': project_ids,
-        'status': True,
-        'status_code' : 201,
-        'message': 'Mentor List fetched successfully.'
-    }
+@invalid_request
+def get_project_associates(request, project_id):
+    project_object_list = ProjectUser.objects.filter(project_id=project_id)
 
-    return HttpResponse(json.dumps(response), content_type="application/json")
-
-
-@csrf_exempt
-@require_http_methods(['GET'])
-def getProjectAssociates(request, project_id):
-    project_ob = Project.objects.get(id = project_id)
-    project_ob_qs = ProjectUser.objects.filter(project=project_ob)
-
-    user_ids = []
+    mentee_ids = []
     mentor_ids = []
-    for proj_ob in project_ob_qs:
-        if proj_ob.is_mentor:
-            mentor_ids.append(proj_ob.user_id)
+    for project_object in project_object_list:
+        if project_object.is_mentor:
+            mentor_ids.append(project_object.user_id)
         else:
-            user_ids.append(proj_ob.user_id)
+            mentee_ids.append(project_object.user_id)
     mentor_ids = list(set(mentor_ids))
-    user_ids = list(set(user_ids))
+    mentee_ids = list(set(mentee_ids))
     response = {
         'result': {
-            'user_ids' : user_ids,
+            'mentee_ids' : mentee_ids,
             'mentor_ids': mentor_ids
         },
         'status': True,
         'status_code' : 201,
-        'message': 'Mentor assigned to Project successfully.'
+        'message': 'Associate List fetched successfully.'
     }
 
     return HttpResponse(json.dumps(response), content_type="application/json")
@@ -158,19 +204,17 @@ def getProjectAssociates(request, project_id):
 
 @csrf_exempt
 @require_http_methods(['GET'])
-def getProjectMentees(request, user_id):
-    user_ob = Users.objects.get(id=user_id)
+@invalid_request
+def get_project_mentees(request, mentor_id):
 
-    project_ids = ProjectUser.objects.filter(is_mentor=True, user = user_ob).\
+    project_ids = ProjectUser.objects.filter(is_mentor=True, user_id=mentor_id).\
                                     values_list('project_id', flat = True).distinct()
 
-    mentees_of_the_projects = ProjectUser.objects.filter(project_id__in = list(project_ids), is_mentor=False).\
-                                values_list('user_id', flat=True).distinct()
-
-    user_ids = [user_id for user_id in mentees_of_the_projects]
+    mentees_of_the_mentor = ProjectUser.objects.filter(project_id__in = list(project_ids), is_mentor=False).\
+                                    values_list('user_id', flat=True).distinct()
 
     response = {
-        'result': user_ids,
+        'result': user_serializer(instance=Users.objects.filter(pk__in=mentees_of_the_mentor), many=True).data,
         'status': True,
         'status_code' : 201,
         'message': 'Mentees list fetched successfully.'

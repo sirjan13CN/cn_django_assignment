@@ -20,3 +20,6 @@ class ProjectUser(models.Model):
     project = models.ForeignKey('Project', on_delete=models.CASCADE)
     user = models.ForeignKey('Users', on_delete=models.CASCADE)
     is_mentor = models.BooleanField(default=False)
+
+    class Meta:
+        unique_together = ('user', 'project')
