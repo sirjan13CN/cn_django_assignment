@@ -13,12 +13,15 @@ def invalid_request(func):
 
     def wrapper(*args, **kwargs):
         try:
-            print(func)
             return func(*args, **kwargs)
-        except IntegrityError:
-            print('aa')
+        except IntegrityError as e:
+            if 'UNIQUE' in e.args[0]:
+                result_text = "Record already exists for the given user and project"
+            else:
+                result_text = "Database constraints violated"
+
             response = {
-                'result': 'Record already exists for the given user and project',
+                'result': result_text,
                 'status_code': 500,
                 'message': 'Internal Server Error'
             }
