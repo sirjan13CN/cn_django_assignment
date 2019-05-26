@@ -14,8 +14,8 @@ def invalid_request(func):
     def wrapper(*args, **kwargs):
         try:
             return func(*args, **kwargs)
-        except IntegrityError as e:
-            if 'UNIQUE' in e.args[0]:
+        except IntegrityError as error:
+            if 'UNIQUE' in error.args[0]:
                 result_text = "Record already exists for the given user and project"
             else:
                 result_text = "Database constraints violated"
@@ -29,7 +29,7 @@ def invalid_request(func):
 
         except Exception as error:
             response = {
-                'result': type(error),
+                'result': error.args[0],
                 'status_code': 500,
                 'message': 'Internal Server Error'
             }
@@ -132,7 +132,8 @@ def assign_project_to_user(request):
         return HttpResponse(json.dumps(response), content_type="application/json")
 
     user_object_list = Users.objects.filter(pk__in=user_id_list)
-    project_user_list = [ProjectUser(user=user_ob, project_id=project_id) for user_ob in user_object_list]
+    project_object = Project.objects.get(pk=project_id)
+    project_user_list = [ProjectUser(user=user_ob, project=project_object) for user_ob in user_object_list]
     ProjectUser.objects.bulk_create(project_user_list)
 
     response = {
@@ -149,7 +150,7 @@ def assign_project_to_user(request):
 @require_http_methods(['POST'])
 @invalid_request
 def assign_mentor_to_project(request, project_id, mentor_id):
-    ProjectUser.objects.create(user_id=mentor_id, project_id=project_id, is_mentor=True)
+    ProjectUser.objects.create(user_id=mentor_id, project_id=Project.objects.get(pk=project_id), is_mentor=True)
 
     response = {
         'result': 'Mentor assigned to Project successfully',
@@ -181,7 +182,7 @@ def get_projects_user_is_mentoring(request, mentor_id):
 @require_http_methods(['GET'])
 @invalid_request
 def get_project_associates(request, project_id):
-    project_object_list = ProjectUser.objects.filter(project_id=project_id)
+    project_object_list = ProjectUser.objects.filter(project=Project.objects.get(pk=project_id))
 
     mentee_ids = []
     mentor_ids = []
@@ -210,7 +211,7 @@ def get_project_associates(request, project_id):
 @invalid_request
 def get_project_mentees(request, mentor_id):
 
-    project_ids = ProjectUser.objects.filter(is_mentor=True, user_id=mentor_id).\
+    project_ids = ProjectUser.objects.filter(is_mentor=True, user=Users.objects.get(pk=mentor_id)).\
                                     values_list('project_id', flat = True).distinct()
 
     mentees_of_the_mentor = ProjectUser.objects.filter(project_id__in = list(project_ids), is_mentor=False).\
